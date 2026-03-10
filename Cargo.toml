@@ -1,0 +1,52 @@
+[package]
+name = "morgan-code"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Async runtime
+tokio = { version = "1.35", features = ["full"] }
+futures = "0.3"
+async-trait = "0.1"
+
+# CLI
+clap = { version = "4.4", features = ["derive"] }
+rustyline = "13.0"
+indicatif = "0.17"
+console = "0.15"
+syntect = "5.0"
+pulldown-cmark = "0.9"
+
+# HTTP client
+reqwest = { version = "0.11", features = ["json", "stream"] }
+eventsource-stream = "0.2"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Code analysis
+tree-sitter = "0.20"
+
+# File operations
+glob = "0.3"
+walkdir = "2.4"
+ignore = "0.4"
+
+# Utilities
+dirs = "5.0"
+uuid = { version = "1.6", features = ["v4"] }
+chrono = "0.4"
+bytes = "1.5"
+
+[dev-dependencies]
+tempfile = "3.8"
+
+[[bin]]
+name = "morgan"
+path = "src/main.rs"
