@@ -18,3 +18,12 @@ Thumbs.db
 # Config
 .morgan-code/
 *.log
+
+# Sensitive files
+.env
+.env.*
+*.key
+*.pem
+config.toml
+*secret*
+*credential*
