@@ -1,0 +1,5 @@
+#!/bin/bash
+# Morgan Code 版本控制快捷命令
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec "$SCRIPT_DIR/scripts/version-control.sh" "$@"

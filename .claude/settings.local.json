@@ -39,7 +39,15 @@
       "Bash(ls -lh backup/20260310.tar.gz && echo \"\" && echo \"备份内容:\" && tar -tzf backup/20260310.tar.gz | head -20)",
       "Bash(echo \"📦 备份摘要\" && echo \"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\" && ls -lh backup/20260310.tar.gz && echo \"\" && echo \"✅ 备份完成！\" && echo \"\" && echo \"包含内容:\" && tar -tzf backup/20260310.tar.gz | wc -l && echo \"个文件/目录\" && echo \"\" && echo \"恢复命令:\" && echo \"  tar -xzf backup/20260310.tar.gz\")",
       "Bash(cat > /root/claude-projects/morgan-code/.gitignore << 'EOF'\n# Build artifacts\n/target/\n**/*.rs.bk\n*.pdb\n\n# IDE\n.vscode/\n.idea/\n*.swp\n*.swo\n*~\n\n# OS\n.DS_Store\nThumbs.db\n\n# Backup files\nbackup/*.tar.gz\n\n# Screenshots\nScreenshots/\n*.png\n\n# Local settings\n.claude/settings.local.json\nEOF\necho \"✅ 已创建 .gitignore\")",
-      "Bash(git add -A && git status)"
+      "Bash(git add -A && git status)",
+      "Bash(git commit -m \"feat: implement streaming response with tool call support\n\n- Add streaming response for DeepSeek and OpenAI providers\n- Implement real-time output display with StreamingOutput component\n- Add DeepSeek Reasoner reasoning content display \\(gray text\\)\n- Fix tool call parsing in streaming mode with chunk accumulation\n- Add comprehensive error handling for incomplete JSON\n- Update README with streaming feature documentation\n\nFeatures:\n- Real-time character-by-character output\n- Tool calls work seamlessly in streaming mode\n- Graceful fallback for non-streaming providers\n- Backward compatible with original run\\(\\) method\n\nFixes:\n- Handle incremental tool call data in streaming\n- Validate JSON completeness before parsing\n- Continue streaming when tool calls are present\n- Skip invalid tool calls with warnings\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>\")",
+      "Bash(git tag -a v0.2.0-streaming -m \"Release v0.2.0: Streaming Response Implementation\n\nMajor Features:\n- Full streaming response support for DeepSeek and OpenAI\n- Real-time output display with reasoning content\n- Tool call support in streaming mode\n- Comprehensive error handling\n\nThis is a stable version with all streaming features tested and working.\"\n\ngit tag -l)",
+      "Bash(chmod +x /root/claude-projects/morgan-code/scripts/version-control.sh && ls -lh /root/claude-projects/morgan-code/scripts/version-control.sh)",
+      "Bash(chmod +x /root/claude-projects/morgan-code/vc && ./vc help)",
+      "Bash(./vc help)",
+      "Bash(./vc status)",
+      "Bash(./vc list)",
+      "Bash(./vc save \"添加版本控制工具和快捷命令\")"
     ]
   }
 }
