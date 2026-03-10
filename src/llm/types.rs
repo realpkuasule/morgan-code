@@ -116,5 +116,16 @@ pub struct TokenUsage {
 #[derive(Debug, Clone)]
 pub struct StreamChunk {
     pub content: String,
+    pub reasoning_content: Option<String>,
+    pub tool_calls: Vec<ToolCall>,
+    pub tool_call_chunks: Vec<ToolCallChunk>,
     pub finish_reason: Option<FinishReason>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ToolCallChunk {
+    pub index: usize,
+    pub id: Option<String>,
+    pub name: Option<String>,
+    pub arguments: Option<String>,
 }

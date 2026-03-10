@@ -4,7 +4,8 @@ A Rust-based AI coding assistant CLI tool with customizable LLM support, featuri
 
 ## Features
 
-- **Native DeepSeek Reasoner Support**: Built-in support for DeepSeek's reasoning models with automatic reasoning content display
+- **Streaming Response**: Real-time output display with immediate feedback as AI generates responses
+- **Native DeepSeek Reasoner Support**: Built-in support for DeepSeek's reasoning models with automatic reasoning content display (shown in gray during streaming)
 - **Multiple LLM Providers**: Support for DeepSeek, OpenAI, Anthropic, and Azure OpenAI
 - **Tool System**: Built-in tools for file operations (read, write, edit, glob, grep) and shell execution
 - **Agent System**: Autonomous agent that can use tools to accomplish tasks
@@ -23,6 +24,16 @@ The binary will be available at `target/release/morgan`.
 
 **New to Morgan Code?** Check out the [Quick Start Guide](QUICKSTART.md) for a 2-minute setup!
 
+### Option 1: One-Click Start (Recommended)
+```bash
+# Set API key
+export DEEPSEEK_API_KEY=your-api-key-here
+
+# Run start script
+./scripts/start.sh
+```
+
+### Option 2: Manual Start
 1. Initialize configuration:
 ```bash
 morgan init

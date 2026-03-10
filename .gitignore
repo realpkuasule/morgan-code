@@ -1,12 +1,11 @@
-# Rust
+# Build artifacts
 /target/
 **/*.rs.bk
 *.pdb
-Cargo.lock
 
 # IDE
-.idea/
 .vscode/
+.idea/
 *.swp
 *.swo
 *~
@@ -15,15 +14,12 @@ Cargo.lock
 .DS_Store
 Thumbs.db
 
-# Config
-.morgan-code/
-*.log
+# Backup files
+backup/*.tar.gz
 
-# Sensitive files
-.env
-.env.*
-*.key
-*.pem
-config.toml
-*secret*
-*credential*
+# Screenshots
+Screenshots/
+*.png
+
+# Local settings
+.claude/settings.local.json

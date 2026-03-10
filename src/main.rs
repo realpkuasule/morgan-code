@@ -7,7 +7,7 @@ use morgan_code::{
     llm::LLMFactory,
     tools::ToolRegistry,
     agent::Agent,
-    ui::Spinner,
+    ui::{Spinner, StreamingOutput},
     markdown::MarkdownRenderer,
 };
 
@@ -122,6 +122,7 @@ async fn start_chat() -> morgan_code::Result<()> {
     let api_key = config.get_api_key()?;
 
     let llm = LLMFactory::create(&config.llm, api_key)?;
+    let supports_streaming = llm.supports_streaming();
     let tools = Arc::new(ToolRegistry::new());
     let mut agent = Agent::new(llm, tools, config.agent.max_iterations);
 
@@ -206,23 +207,52 @@ async fn start_chat() -> morgan_code::Result<()> {
             None
         };
 
-        match agent.run(input.to_string()).await {
-            Ok(response) => {
-                if let Some(s) = spinner {
-                    s.finish_and_clear();
+        if supports_streaming {
+            // Streaming mode
+            let mut streaming_output = StreamingOutput::new();
+            let mut first_chunk = true;
+
+            match agent.run_streaming(input.to_string(), |chunk| {
+                if first_chunk && (!chunk.content.is_empty() || chunk.reasoning_content.is_some()) {
+                    if let Some(ref s) = spinner {
+                        s.finish_and_clear();
+                    }
+                    print!("\x1b[0m");
+                    println!("\nMorgan:");
+                    first_chunk = false;
                 }
-                // Ensure all styles are reset before printing response
-                print!("\x1b[0m");
-                println!("\nMorgan:");
-                md_renderer.print(&response);
-                println!();
+                streaming_output.handle_chunk(chunk);
+            }).await {
+                Ok(_) => {
+                    println!();
+                }
+                Err(e) => {
+                    if let Some(s) = spinner {
+                        s.finish_and_clear();
+                    }
+                    print!("\x1b[0m");
+                    eprintln!("\nError: {}\n", e);
+                }
             }
-            Err(e) => {
-                if let Some(s) = spinner {
-                    s.finish_and_clear();
+        } else {
+            // Non-streaming mode
+            match agent.run(input.to_string()).await {
+                Ok(response) => {
+                    if let Some(s) = spinner {
+                        s.finish_and_clear();
+                    }
+                    print!("\x1b[0m");
+                    println!("\nMorgan:");
+                    md_renderer.print(&response);
+                    println!();
                 }
-                print!("\x1b[0m");
-                eprintln!("\nError: {}\n", e);
+                Err(e) => {
+                    if let Some(s) = spinner {
+                        s.finish_and_clear();
+                    }
+                    print!("\x1b[0m");
+                    eprintln!("\nError: {}\n", e);
+                }
             }
         }
     }

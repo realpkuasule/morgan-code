@@ -4,7 +4,8 @@
 
 ## 特性
 
-- **原生 DeepSeek Reasoner 支持**：内置支持 DeepSeek 推理模型，自动显示推理内容
+- **流式响应**：实时输出显示，AI 生成响应时立即反馈
+- **原生 DeepSeek Reasoner 支持**：内置支持 DeepSeek 推理模型，自动显示推理内容（流式模式下以灰色显示）
 - **多 LLM 提供商**：支持 DeepSeek、OpenAI、Anthropic 和 Azure OpenAI
 - **工具系统**：内置文件操作工具（read、write、edit、glob、grep）和 shell 执行
 - **Agent 系统**：自主 agent 可以使用工具完成任务
@@ -23,6 +24,16 @@ cargo build --release
 
 **初次使用 Morgan Code？** 查看[快速开始指南](QUICKSTART_CN.md)，2 分钟即可上手！
 
+### 方式一：一键启动（推荐）
+```bash
+# 设置 API 密钥
+export DEEPSEEK_API_KEY=your-api-key-here
+
+# 运行启动脚本
+./scripts/start.sh
+```
+
+### 方式二：手动启动
 1. 初始化配置：
 ```bash
 morgan init

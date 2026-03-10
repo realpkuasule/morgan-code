@@ -102,8 +102,103 @@ impl LLMProvider for OpenAIProvider {
         })
     }
 
-    async fn stream(&self, _request: CompletionRequest) -> Result<CompletionStream> {
-        Err(MorganError::LLMProvider("Streaming not yet implemented".to_string()))
+    async fn stream(&self, request: CompletionRequest) -> Result<CompletionStream> {
+        use eventsource_stream::Eventsource;
+        use futures::stream::StreamExt;
+
+        let req_body = OpenAIRequest {
+            model: self.model.clone(),
+            messages: self.convert_messages(&request.messages),
+            temperature: request.temperature,
+            max_tokens: request.max_tokens,
+            tools: request.tools.as_ref().map(|t| self.convert_tools(t)),
+            stream: true,
+        };
+
+        let response = self.client
+            .post(format!("{}/chat/completions", self.config.base_url))
+            .bearer_auth(&self.api_key)
+            .json(&req_body)
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            let error_text = response.text().await?;
+            return Err(MorganError::LLMProvider(format!("OpenAI API error: {}", error_text)));
+        }
+
+        let stream = response
+            .bytes_stream()
+            .eventsource()
+            .map(|event| {
+                match event {
+                    Ok(event) => {
+                        if event.data == "[DONE]" {
+                            return Ok(StreamChunk {
+                                content: String::new(),
+                                reasoning_content: None,
+                                tool_calls: vec![],
+                                tool_call_chunks: vec![],
+                                finish_reason: Some(FinishReason::Stop),
+                            });
+                        }
+
+                        let chunk: OpenAIStreamChunk = serde_json::from_str(&event.data)
+                            .map_err(|e| MorganError::LLMProvider(format!("Parse error: {}", e)))?;
+
+                        if chunk.choices.is_empty() {
+                            return Ok(StreamChunk {
+                                content: String::new(),
+                                reasoning_content: None,
+                                tool_calls: vec![],
+                                tool_call_chunks: vec![],
+                                finish_reason: None,
+                            });
+                        }
+
+                        let delta = &chunk.choices[0].delta;
+
+                        let tool_call_chunks = delta.tool_calls.as_ref()
+                            .map(|calls| calls.iter().map(|tc| {
+                                let id = tc.id.clone().unwrap_or_default();
+                                let name = tc.function.as_ref()
+                                    .and_then(|f| f.name.clone())
+                                    .unwrap_or_default();
+                                let arguments = tc.function.as_ref()
+                                    .and_then(|f| f.arguments.clone())
+                                    .unwrap_or_default();
+
+                                ToolCallChunk {
+                                    index: tc.index,
+                                    id: if id.is_empty() { None } else { Some(id) },
+                                    name: if name.is_empty() { None } else { Some(name) },
+                                    arguments: if arguments.is_empty() { None } else { Some(arguments) },
+                                }
+                            }).collect())
+                            .unwrap_or_default();
+
+                        let finish_reason = chunk.choices[0].finish_reason.as_ref()
+                            .map(|r| match r.as_str() {
+                                "stop" => FinishReason::Stop,
+                                "length" => FinishReason::Length,
+                                "tool_calls" => FinishReason::ToolCalls,
+                                "content_filter" => FinishReason::ContentFilter,
+                                _ => FinishReason::Stop,
+                            });
+
+                        Ok(StreamChunk {
+                            content: delta.content.clone().unwrap_or_default(),
+                            reasoning_content: None,  // OpenAI doesn't have reasoning_content
+                            tool_calls: vec![],
+                            tool_call_chunks,
+                            finish_reason,
+                        })
+                    }
+                    Err(e) => Err(MorganError::LLMProvider(format!("Stream error: {}", e))),
+                }
+            });
+
+        Ok(Box::pin(stream))
     }
 
     fn supports_tools(&self) -> bool {
@@ -111,7 +206,7 @@ impl LLMProvider for OpenAIProvider {
     }
 
     fn supports_streaming(&self) -> bool {
-        false
+        true
     }
 
     fn model_name(&self) -> &str {
@@ -186,4 +281,39 @@ struct OpenAIUsage {
     prompt_tokens: u32,
     completion_tokens: u32,
     total_tokens: u32,
+}
+
+#[derive(Debug, Deserialize)]
+struct OpenAIStreamChunk {
+    choices: Vec<OpenAIStreamChoice>,
+}
+
+#[derive(Debug, Deserialize)]
+struct OpenAIStreamChoice {
+    delta: OpenAIStreamDelta,
+    finish_reason: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct OpenAIStreamDelta {
+    content: Option<String>,
+    tool_calls: Option<Vec<OpenAIStreamToolCall>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct OpenAIStreamToolCall {
+    #[serde(default)]
+    index: usize,
+    #[serde(default)]
+    id: Option<String>,
+    #[serde(default)]
+    function: Option<OpenAIStreamFunctionCall>,
+}
+
+#[derive(Debug, Deserialize)]
+struct OpenAIStreamFunctionCall {
+    #[serde(default)]
+    name: Option<String>,
+    #[serde(default)]
+    arguments: Option<String>,
 }
