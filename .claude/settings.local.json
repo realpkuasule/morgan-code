@@ -47,7 +47,8 @@
       "Bash(./vc help)",
       "Bash(./vc status)",
       "Bash(./vc list)",
-      "Bash(./vc save \"添加版本控制工具和快捷命令\")"
+      "Bash(./vc save \"添加版本控制工具和快捷命令\")",
+      "Bash(./vc save \"添加版本控制系统文档和快速参考\")"
     ]
   }
 }
