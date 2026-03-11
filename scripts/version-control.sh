@@ -1,285 +1,309 @@
 #!/bin/bash
 
-# Morgan Code 版本控制工具
-# 提供一键保存、回滚、查看历史等功能
+# vc - Universal Version Control Helper
+# A git wrapper for painless save/rollback workflow
+# Install: curl -fsSL <url>/vc.sh | bash
+# Usage: ./vc <command> [args]
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+
+# If placed in scripts/, project root is one level up; otherwise use cwd
+if [ "$(basename "$SCRIPT_DIR")" = "scripts" ]; then
+    PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+else
+    PROJECT_DIR="$SCRIPT_DIR"
+fi
 
 cd "$PROJECT_DIR"
 
-# 颜色定义
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# 显示帮助信息
-show_help() {
-    cat << EOF
-Morgan Code 版本控制工具
+# ── helpers ─────────────────────────────────────────────────────────────────
 
-用法: $0 <命令> [参数]
-
-命令:
-  save <message>        保存当前版本（创建 commit 和 tag）
-  list                  列出所有版本标签
-  show <tag>            显示指定版本的详细信息
-  rollback <tag>        回滚到指定版本
-  diff <tag1> <tag2>    比较两个版本的差异
-  status                显示当前状态
-  backup                创建 tar.gz 备份
-  help                  显示此帮助信息
-
-示例:
-  $0 save "添加新功能"
-  $0 list
-  $0 rollback v0.2.0-streaming
-  $0 diff v0.1.0 v0.2.0-streaming
-
-EOF
+require_git() {
+    if ! git rev-parse --git-dir > /dev/null 2>&1; then
+        echo -e "${RED}Error: not a git repository.${NC}"
+        echo "Run './vc init' to initialise one."
+        exit 1
+    fi
 }
 
-# 保存当前版本
-save_version() {
-    local message="$1"
+require_tag() {
+    local tag="$1" label="${2:-tag}"
+    if [ -z "$tag" ]; then
+        echo -e "${RED}Error: please specify a $label.${NC}"
+        exit 1
+    fi
+    if ! git rev-parse "$tag" > /dev/null 2>&1; then
+        echo -e "${RED}Error: '$tag' not found.${NC}"
+        exit 1
+    fi
+}
+
+# ── commands ─────────────────────────────────────────────────────────────────
+
+cmd_init() {
+    if git rev-parse --git-dir > /dev/null 2>&1; then
+        echo -e "${YELLOW}Already a git repository.${NC}"
+    else
+        git init
+        echo -e "${GREEN}��� git repository initialised.${NC}"
+    fi
+
+    # Create a sensible .gitignore if none exists
+    if [ ! -f .gitignore ]; then
+        cat > .gitignore << 'GITIGNORE'
+# Build / compiled output
+/target/
+/dist/
+/build/
+__pycache__/
+*.pyc
+*.pdb
+*.rs.bk
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+*.key
+*.pem
+
+# Local overrides
+*.local
+GITIGNORE
+        echo -e "${GREEN}✓ .gitignore created.${NC}"
+    fi
+
+    # Initial commit if nothing committed yet
+    if ! git rev-parse --verify HEAD > /dev/null 2>&1; then
+        git add -A
+        git commit -m "chore: initial commit" 2>/dev/null || true
+        echo -e "${GREEN}✓ initial commit created.${NC}"
+    fi
+
+    echo -e "\n${BLUE}Ready. Try: ./vc save \"first version\"${NC}"
+}
+
+cmd_save() {
+    require_git
+    local message="$*"
     if [ -z "$message" ]; then
-        echo -e "${RED}错误: 请提供提交信息${NC}"
-        echo "用法: $0 save <message>"
+        echo -e "${RED}Error: please provide a message.${NC}"
+        echo "Usage: ./vc save <message>"
         exit 1
     fi
 
-    echo -e "${BLUE}📝 保存当前版本...${NC}"
-
-    # 检查是否有更改
-    if git diff --quiet && git diff --cached --quiet; then
-        echo -e "${YELLOW}⚠️  没有检测到更改${NC}"
+    if git diff --quiet && git diff --cached --quiet && \
+       [ -z "$(git ls-files --others --exclude-standard)" ]; then
+        echo -e "${YELLOW}Nothing to save (working tree clean).${NC}"
         exit 0
     fi
 
-    # 显示将要提交的更改
-    echo -e "\n${BLUE}将要提交的更改:${NC}"
+    echo -e "${BLUE}Saving...${NC}"
     git status --short
 
-    # 添加��有更改
     git add -A
+    git commit -m "$message"
 
-    # 创建提交
-    git commit -m "$message
-
-Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
-
-    # 获取提交哈希
-    local commit_hash=$(git rev-parse --short HEAD)
-
-    # 生成版本号（基于日期和时间）
     local version="v$(date +%Y%m%d-%H%M%S)"
-
-    # 创建 tag
     git tag -a "$version" -m "$message"
 
-    echo -e "\n${GREEN}✅ 版本已保存！${NC}"
-    echo -e "   Commit: ${commit_hash}"
-    echo -e "   Tag: ${version}"
-    echo -e "\n${BLUE}回滚命令:${NC}"
-    echo -e "   $0 rollback $version"
+    echo -e "\n${GREEN}✓ Saved as ${version}${NC}"
+    echo -e "  Rollback: ./vc rollback $version"
 }
 
-# 列出所有版本
-list_versions() {
-    echo -e "${BLUE}📋 所有版本标签:${NC}\n"
+cmd_list() {
+    require_git
 
     if ! git tag -l | grep -q .; then
-        echo -e "${YELLOW}暂无版本标签${NC}"
+        echo -e "${YELLOW}No saved versions yet. Use: ./vc save \"message\"${NC}"
         return
     fi
 
-    git tag -l --sort=-version:refname | while read tag; do
-        local date=$(git log -1 --format=%ai "$tag" | cut -d' ' -f1,2)
-        local message=$(git tag -l --format='%(contents:subject)' "$tag")
-        echo -e "${GREEN}$tag${NC} - $date"
-        echo -e "  $message"
-        echo ""
+    echo -e "${BLUE}Saved versions:${NC}\n"
+    git tag -l --sort=-version:refname | while read -r tag; do
+        local date msg
+        date=$(git log -1 --format="%ai" "$tag" | cut -d' ' -f1,2)
+        msg=$(git tag -l --format='%(contents:subject)' "$tag")
+        echo -e "  ${GREEN}${tag}${NC}  ${date}"
+        echo -e "    ${msg}"
+        echo
     done
 }
 
-# 显示版本详情
-show_version() {
-    local tag="$1"
-    if [ -z "$tag" ]; then
-        echo -e "${RED}错误: 请指定版本标签${NC}"
-        echo "用法: $0 show <tag>"
-        exit 1
-    fi
-
-    if ! git rev-parse "$tag" >/dev/null 2>&1; then
-        echo -e "${RED}错误: 版本标签 '$tag' 不存在${NC}"
-        exit 1
-    fi
-
-    echo -e "${BLUE}📦 版本详情: $tag${NC}\n"
-    git show "$tag" --stat
+cmd_show() {
+    require_git
+    require_tag "$1" "version tag"
+    git show "$1" --stat
 }
 
-# 回滚到指定版本
-rollback_version() {
+cmd_rollback() {
+    require_git
+    require_tag "$1" "version tag"
     local tag="$1"
-    if [ -z "$tag" ]; then
-        echo -e "${RED}错误: 请指定版本标签${NC}"
-        echo "用法: $0 rollback <tag>"
-        exit 1
-    fi
 
-    if ! git rev-parse "$tag" >/dev/null 2>&1; then
-        echo -e "${RED}错误: 版本标签 '$tag' 不存在${NC}"
-        exit 1
-    fi
-
-    echo -e "${YELLOW}⚠️  警告: 这将丢弃所有未提交的更改！${NC}"
-    echo -e "即将回滚到版本: ${GREEN}$tag${NC}"
-    echo -n "确认继续? (yes/no): "
+    echo -e "${YELLOW}⚠  This will discard all uncommitted changes.${NC}"
+    echo -e "   Target: ${GREEN}${tag}${NC}"
+    printf "Confirm? (yes/no): "
     read -r confirm
+    [ "$confirm" = "yes" ] || { echo -e "${BLUE}Cancelled.${NC}"; exit 0; }
 
-    if [ "$confirm" != "yes" ]; then
-        echo -e "${BLUE}已取消${NC}"
-        exit 0
-    fi
+    local backup="backup-$(date +%Y%m%d-%H%M%S)"
+    git branch "$backup" 2>/dev/null && \
+        echo -e "  ${BLUE}Current state saved to branch: ${backup}${NC}"
 
-    echo -e "\n${BLUE}🔄 回滚中...${NC}"
-
-    # 创建备份分支
-    local backup_branch="backup-$(date +%Y%m%d-%H%M%S)"
-    git branch "$backup_branch" 2>/dev/null || true
-    echo -e "   已创建备份分支: $backup_branch"
-
-    # 回滚到指定版本
     git reset --hard "$tag"
 
-    echo -e "\n${GREEN}✅ 已回滚到版本 $tag${NC}"
-    echo -e "\n${BLUE}如需恢复，可以使用:${NC}"
-    echo -e "   git checkout $backup_branch"
+    echo -e "\n${GREEN}✓ Rolled back to ${tag}${NC}"
+    echo -e "  To undo: git checkout ${backup}"
 }
 
-# 比较两个版本
-diff_versions() {
-    local tag1="$1"
-    local tag2="$2"
-
-    if [ -z "$tag1" ] || [ -z "$tag2" ]; then
-        echo -e "${RED}错误: 请指定两个版本标签${NC}"
-        echo "用法: $0 diff <tag1> <tag2>"
-        exit 1
-    fi
-
-    if ! git rev-parse "$tag1" >/dev/null 2>&1; then
-        echo -e "${RED}错误: 版本标签 '$tag1' 不存在${NC}"
-        exit 1
-    fi
-
-    if ! git rev-parse "$tag2" >/dev/null 2>&1; then
-        echo -e "${RED}错误: 版本标签 '$tag2' 不存在${NC}"
-        exit 1
-    fi
-
-    echo -e "${BLUE}📊 版本差异: $tag1 → $tag2${NC}\n"
-    git diff "$tag1".."$tag2" --stat
-    echo -e "\n${BLUE}详细差异:${NC}"
-    git log "$tag1".."$tag2" --oneline
+cmd_diff() {
+    require_git
+    require_tag "$1" "first tag"
+    require_tag "$2" "second tag"
+    echo -e "${BLUE}Changes from $1 → $2:${NC}\n"
+    git diff "$1".."$2" --stat
+    echo
+    git log "$1".."$2" --oneline
 }
 
-# 显示当前状态
-show_status() {
-    echo -e "${BLUE}📊 当前状态${NC}\n"
+cmd_status() {
+    require_git
+    local branch commit tag
 
-    echo -e "${GREEN}分支:${NC}"
-    git branch --show-current
+    branch=$(git branch --show-current)
+    commit=$(git log -1 --oneline 2>/dev/null || echo "no commits yet")
+    tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "none")
 
-    echo -e "\n${GREEN}最近的提交:${NC}"
-    git log -1 --oneline
+    echo -e "${BLUE}Status${NC}"
+    echo -e "  Branch : ${branch}"
+    echo -e "  Commit : ${commit}"
+    echo -e "  Latest tag : ${tag}"
+    echo
 
-    echo -e "\n${GREEN}最近的标签:${NC}"
-    git describe --tags --abbrev=0 2>/dev/null || echo "无标签"
-
-    echo -e "\n${GREEN}工作区状态:${NC}"
-    if git diff --quiet && git diff --cached --quiet; then
-        echo -e "${GREEN}✓ 工作区干净${NC}"
+    if git diff --quiet && git diff --cached --quiet && \
+       [ -z "$(git ls-files --others --exclude-standard)" ]; then
+        echo -e "  ${GREEN}✓ Working tree clean${NC}"
     else
-        git status --short
+        echo -e "  ${YELLOW}Uncommitted changes:${NC}"
+        git status --short | sed 's/^/    /'
     fi
 }
 
-# 创建备份
-create_backup() {
-    echo -e "${BLUE}📦 创建备份...${NC}"
-
+cmd_backup() {
+    require_git
     local backup_dir="$PROJECT_DIR/backup"
     mkdir -p "$backup_dir"
 
     local backup_file="$backup_dir/$(date +%Y%m%d-%H%M%S).tar.gz"
 
-    tar -czf "$backup_file" \
-        --exclude='target' \
-        --exclude='backup' \
-        --exclude='.git' \
-        --exclude='*.png' \
-        --exclude='Screenshots' \
-        src/ \
-        Cargo.toml \
-        Cargo.lock \
-        README*.md \
-        QUICKSTART*.md \
-        *.md \
-        scripts/ \
-        tests/ \
-        *.sh 2>/dev/null || true
+    # Use git archive so we only pack tracked files — works for any project type
+    git archive HEAD --format=tar.gz -o "$backup_file"
 
-    local size=$(ls -lh "$backup_file" | awk '{print $5}')
-    echo -e "${GREEN}✅ 备份已创建${NC}"
-    echo -e "   文件: $backup_file"
-    echo -e "   大小: $size"
+    local size
+    size=$(ls -lh "$backup_file" | awk '{print $5}')
+    echo -e "${GREEN}✓ Backup created: ${backup_file} (${size})${NC}"
 }
 
-# 主函数
-main() {
-    if [ $# -eq 0 ]; then
-        show_help
-        exit 0
+cmd_log() {
+    require_git
+    git log --oneline --graph --all | head -40
+}
+
+show_help() {
+    cat << EOF
+
+  vc — simple version control helper (wraps git)
+
+  Usage: ./vc <command> [args]
+
+  Commands:
+    init                  Initialise git repo + .gitignore
+    save <message>        Commit everything and tag the snapshot
+    list                  List all saved snapshots
+    show <tag>            Show details of a snapshot
+    rollback <tag>        Reset to a snapshot (with auto backup branch)
+    diff <tag1> <tag2>    Compare two snapshots
+    log                   Show recent commit graph
+    status                Working tree status
+    backup                Export current HEAD to backup/<timestamp>.tar.gz
+    help                  Show this message
+
+  Examples:
+    ./vc init
+    ./vc save "add streaming support"
+    ./vc list
+    ./vc rollback v20260311-062045
+    ./vc diff v20260310-150000 v20260311-062045
+
+EOF
+}
+
+# ── install helper (for new projects) ────────────────────────────────────────
+
+cmd_install() {
+    local target="${1:-.}"
+    local target_script
+    target_script="$(cd "$target" && pwd)/scripts/version-control.sh"
+    local self
+    self="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
+
+    mkdir -p "$target/scripts"
+
+    if [ "$self" != "$target_script" ]; then
+        cp "$self" "$target_script"
+        chmod +x "$target_script"
     fi
 
-    local command="$1"
-    shift
+    # Create the thin vc wrapper in the project root
+    cat > "$target/vc" << 'WRAPPER'
+#!/bin/bash
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec "$SCRIPT_DIR/scripts/version-control.sh" "$@"
+WRAPPER
+    chmod +x "$target/vc"
 
-    case "$command" in
-        save)
-            save_version "$@"
-            ;;
-        list)
-            list_versions
-            ;;
-        show)
-            show_version "$@"
-            ;;
-        rollback)
-            rollback_version "$@"
-            ;;
-        diff)
-            diff_versions "$@"
-            ;;
-        status)
-            show_status
-            ;;
-        backup)
-            create_backup
-            ;;
-        help|--help|-h)
-            show_help
-            ;;
+    echo -e "${GREEN}✓ Installed to ${target}/${NC}"
+    echo -e "  Run: cd ${target} && ./vc init"
+}
+
+# ── main ─────────────────────────────────────────────────────────────────────
+
+main() {
+    local cmd="${1:-help}"
+    shift 2>/dev/null || true
+
+    case "$cmd" in
+        init)     cmd_init "$@" ;;
+        save)     cmd_save "$@" ;;
+        list)     cmd_list ;;
+        show)     cmd_show "$@" ;;
+        rollback) cmd_rollback "$@" ;;
+        diff)     cmd_diff "$@" ;;
+        log)      cmd_log ;;
+        status)   cmd_status ;;
+        backup)   cmd_backup ;;
+        install)  cmd_install "$@" ;;
+        help|--help|-h) show_help ;;
         *)
-            echo -e "${RED}错误: 未知命令 '$command'${NC}"
-            echo ""
+            echo -e "${RED}Unknown command: $cmd${NC}"
             show_help
             exit 1
             ;;

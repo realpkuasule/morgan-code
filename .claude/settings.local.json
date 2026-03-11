@@ -48,7 +48,9 @@
       "Bash(./vc status)",
       "Bash(./vc list)",
       "Bash(./vc save \"添加版本控制工具和快捷命令\")",
-      "Bash(./vc save \"添加版本控制系统文档和快速参考\")"
+      "Bash(./vc save \"添加版本控制系统文档和快速参考\")",
+      "Bash(chmod +x scripts/version-control.sh && ./vc help)",
+      "Bash(./vc save \"refactor: make version-control.sh generic and project-agnostic\")"
     ]
   }
 }
