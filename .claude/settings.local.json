@@ -50,7 +50,18 @@
       "Bash(./vc save \"添加版本控制工具和快捷命令\")",
       "Bash(./vc save \"添加版本控制系统文档和快速参考\")",
       "Bash(chmod +x scripts/version-control.sh && ./vc help)",
-      "Bash(./vc save \"refactor: make version-control.sh generic and project-agnostic\")"
+      "Bash(./vc save \"refactor: make version-control.sh generic and project-agnostic\")",
+      "Bash(cp /root/claude-projects/morgan-code/scripts/version-control.sh /tmp/vc-tool/vc.sh)",
+      "Bash(chmod +x /tmp/vc-tool/vc.sh)",
+      "Read(//tmp/vc-tool/**)",
+      "Bash(git push -u origin main --force)",
+      "Bash(git add install.sh && git commit -m \"fix: auto-run init after install\" && git push)",
+      "Bash(find /root/claude-projects -type f -name \"*.rs\" 2>/dev/null | head -20)",
+      "Bash(cargo build 2>&1 | head -50)",
+      "Bash(echo $DEEPSEEK_API_KEY | head -c 10)",
+      "Bash(chmod +x /root/claude-projects/morgan-code/test_tool_display.sh && /root/claude-projects/morgan-code/test_tool_display.sh)",
+      "Bash(curl -X POST https://api.getmoshi.app/api/webhook \\\\\n  -H \"Content-Type: application/json\" \\\\\n  -d '{\"token\": \"Cw15Y2ckYZKSMNOC0GwFIUevS5HhCRU8\", \"title\": \"Done\", \"message\": \"Tool execution display implemented - shows tool calls in real-time during streaming\"}')",
+      "Bash(cargo build 2>&1)"
     ]
   }
 }

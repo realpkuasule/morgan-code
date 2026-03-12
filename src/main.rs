@@ -213,7 +213,7 @@ async fn start_chat() -> morgan_code::Result<()> {
             let mut first_chunk = true;
 
             match agent.run_streaming(input.to_string(), |chunk| {
-                if first_chunk && (!chunk.content.is_empty() || chunk.reasoning_content.is_some()) {
+                if first_chunk && (!chunk.content.is_empty() || chunk.reasoning_content.is_some() || chunk.tool_execution_event.is_some()) {
                     if let Some(ref s) = spinner {
                         s.finish_and_clear();
                     }

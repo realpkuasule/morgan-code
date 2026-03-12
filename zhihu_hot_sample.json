@@ -1,0 +1,56 @@
+{
+  "timestamp": "2026-03-11 14:17:44",
+  "source": "示例数据",
+  "hot_list": [
+    {
+      "rank": 1,
+      "title": "2026年人工智能发展大会今日开幕",
+      "hot_score": 12800000,
+      "answers": 4230,
+      "category": "科技"
+    },
+    {
+      "rank": 2,
+      "title": "新能源汽车购置税政策延续引热议",
+      "hot_score": 9560000,
+      "answers": 2980,
+      "category": "财经"
+    },
+    {
+      "rank": 3,
+      "title": "高校毕业生就业报告发布",
+      "hot_score": 8320000,
+      "answers": 3650,
+      "category": "社会"
+    },
+    {
+      "rank": 4,
+      "title": "电影《流浪地球3》票房破30亿",
+      "hot_score": 7210000,
+      "answers": 2430,
+      "category": "娱乐"
+    },
+    {
+      "rank": 5,
+      "title": "健康中国2030规划新进展",
+      "hot_score": 6450000,
+      "answers": 1870,
+      "category": "健康"
+    }
+  ],
+  "stats": {
+    "total_items": 50,
+    "avg_hot_score": 3200000,
+    "max_answers": 4230,
+    "categories": [
+      "科技",
+      "财经",
+      "社会",
+      "娱乐",
+      "健康",
+      "教育",
+      "体育",
+      "国际"
+    ]
+  }
+}

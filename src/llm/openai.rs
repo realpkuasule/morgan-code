@@ -139,6 +139,7 @@ impl LLMProvider for OpenAIProvider {
                                 reasoning_content: None,
                                 tool_calls: vec![],
                                 tool_call_chunks: vec![],
+                                tool_execution_event: None,
                                 finish_reason: Some(FinishReason::Stop),
                             });
                         }
@@ -152,6 +153,7 @@ impl LLMProvider for OpenAIProvider {
                                 reasoning_content: None,
                                 tool_calls: vec![],
                                 tool_call_chunks: vec![],
+                                tool_execution_event: None,
                                 finish_reason: None,
                             });
                         }
@@ -191,6 +193,7 @@ impl LLMProvider for OpenAIProvider {
                             reasoning_content: None,  // OpenAI doesn't have reasoning_content
                             tool_calls: vec![],
                             tool_call_chunks,
+                            tool_execution_event: None,
                             finish_reason,
                         })
                     }

@@ -205,11 +205,46 @@ impl Agent {
                 ));
 
                 for tool_call in tool_calls {
+                    // Emit start event
+                    let start_chunk = crate::llm::StreamChunk {
+                        content: String::new(),
+                        reasoning_content: None,
+                        tool_calls: vec![],
+                        tool_call_chunks: vec![],
+                        tool_execution_event: Some(crate::llm::ToolExecutionEvent::ToolCallStart {
+                            name: tool_call.name.clone(),
+                            parameters: tool_call.parameters.clone(),
+                        }),
+                        finish_reason: None,
+                    };
+                    on_chunk(&start_chunk);
+
+                    // Execute tool
                     let tool = self.tools.get(&tool_call.name)
                         .ok_or_else(|| MorganError::NotFound(format!("Tool not found: {}", tool_call.name)))?;
 
                     let result = tool.execute(tool_call.parameters).await?;
 
+                    // Emit end event
+                    let end_chunk = crate::llm::StreamChunk {
+                        content: String::new(),
+                        reasoning_content: None,
+                        tool_calls: vec![],
+                        tool_call_chunks: vec![],
+                        tool_execution_event: Some(crate::llm::ToolExecutionEvent::ToolCallEnd {
+                            name: tool_call.name.clone(),
+                            result: if result.success {
+                                result.output.clone()
+                            } else {
+                                result.error.clone().unwrap_or_default()
+                            },
+                            success: result.success,
+                        }),
+                        finish_reason: None,
+                    };
+                    on_chunk(&end_chunk);
+
+                    // Add to context
                     let result_message = if result.success {
                         format!("Tool '{}' result:\n{}", tool_call.name, result.output)
                     } else {

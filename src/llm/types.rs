@@ -114,11 +114,18 @@ pub struct TokenUsage {
 }
 
 #[derive(Debug, Clone)]
+pub enum ToolExecutionEvent {
+    ToolCallStart { name: String, parameters: serde_json::Value },
+    ToolCallEnd { name: String, result: String, success: bool },
+}
+
+#[derive(Debug, Clone)]
 pub struct StreamChunk {
     pub content: String,
     pub reasoning_content: Option<String>,
     pub tool_calls: Vec<ToolCall>,
     pub tool_call_chunks: Vec<ToolCallChunk>,
+    pub tool_execution_event: Option<ToolExecutionEvent>,
     pub finish_reason: Option<FinishReason>,
 }
 
