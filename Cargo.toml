@@ -17,6 +17,11 @@ console = "0.15"
 syntect = "5.0"
 pulldown-cmark = "0.9"
 
+# TUI
+ratatui = "0.26"
+crossterm = "0.27"
+textwrap = "0.16"
+
 # HTTP client
 reqwest = { version = "0.11", features = ["json", "stream"] }
 eventsource-stream = "0.2"

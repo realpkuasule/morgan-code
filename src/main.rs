@@ -22,7 +22,14 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     /// Start an interactive chat session
-    Chat,
+    Chat {
+        /// Use TUI interface (default if available)
+        #[arg(long = "tui")]
+        tui: bool,
+        /// Use REPL interface instead of TUI
+        #[arg(long = "repl")]
+        repl: bool,
+    },
     /// Initialize configuration file
     Init,
     /// Show current configuration
@@ -47,8 +54,11 @@ async fn run() -> morgan_code::Result<()> {
         Some(Commands::Config) => {
             show_config()?;
         }
-        Some(Commands::Chat) | None => {
-            start_chat().await?;
+        Some(Commands::Chat { tui, repl }) => {
+            start_chat(tui, repl).await?;
+        }
+        None => {
+            start_chat(false, false).await?;
         }
     }
 
@@ -91,6 +101,10 @@ enable_background_tasks = true
 [ui]
 show_spinner = true
 color_output = true
+mode = "tui"
+enable_syntax_highlighting = true
+show_line_numbers = true
+theme = "base16-ocean.dark"
 "#;
 
     std::fs::write(&config_path, default_config)?;
@@ -114,10 +128,7 @@ fn show_config() -> morgan_code::Result<()> {
     Ok(())
 }
 
-async fn start_chat() -> morgan_code::Result<()> {
-    println!("Morgan Code - AI Coding Assistant");
-    println!("Type 'exit' or 'quit' to end the session\n");
-
+async fn start_chat(tui: bool, repl: bool) -> morgan_code::Result<()> {
     let config = Config::load()?;
     let api_key = config.get_api_key()?;
 
@@ -125,6 +136,25 @@ async fn start_chat() -> morgan_code::Result<()> {
     let supports_streaming = llm.supports_streaming();
     let tools = Arc::new(ToolRegistry::new());
     let mut agent = Agent::new(llm, tools, config.agent.max_iterations);
+
+    // Determine which UI mode to use
+    let use_tui = if repl {
+        false
+    } else if tui {
+        true
+    } else {
+        // Use config default
+        config.ui.mode == morgan_code::config::UIMode::Tui
+    };
+
+    if use_tui {
+        // TUI mode
+        return morgan_code::ui::tui::run_tui(agent, &config).await;
+    }
+
+    // REPL mode (existing implementation)
+    println!("Morgan Code - AI Coding Assistant");
+    println!("Type 'exit' or 'quit' to end the session\n");
 
     // Create markdown renderer
     let md_renderer = MarkdownRenderer::new();

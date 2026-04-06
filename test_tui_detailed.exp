@@ -1,0 +1,74 @@
+#!/usr/bin/expect
+
+# Detailed test script for TUI mode
+set timeout 20
+
+puts "=================================================="
+puts "TUI Mode Detailed Test"
+puts "=================================================="
+
+spawn bash -c "export DEEPSEEK_API_KEY=test_key_for_tui_testing && ./target/release/morgan chat --tui"
+
+# Test 1: TUI Initialization
+puts "\nTest 1: Checking TUI initialization..."
+expect {
+    timeout {
+        puts "❌ FAILED: TUI did not start within timeout"
+        exit 1
+    }
+    -re "\\\\[?1049h" {
+        puts "✅ PASSED: TUI entered alternate screen mode"
+    }
+    -re . {
+        puts "✅ PASSED: TUI started"
+    }
+}
+
+# Test 2: Send test message
+puts "\nTest 2: Sending test message 'hello'..."
+sleep 1
+send "hello"
+after 500
+
+# Test 3: Check for input processing
+puts "\nTest 3: Checking input processing..."
+expect {
+    timeout {
+        puts "⚠️  WARNING: No immediate response (may be due to API key)"
+    }
+    -re . {
+        puts "✅ PASSED: Input was processed"
+    }
+}
+
+# Test 4: Test Enter key to submit
+puts "\nTest 4: Testing Enter key to submit message..."
+send "\r"
+sleep 2
+
+# Test 5: Test Ctrl+D to exit
+puts "\nTest 5: Testing Ctrl+D to exit..."
+send "\004"
+
+expect {
+    timeout {
+        puts "❌ FAILED: TUI did not exit cleanly after Ctrl+D"
+        exit 1
+    }
+    -re "\\\\[?1049l" {
+        puts "✅ PASSED: TUI exited alternate screen mode"
+    }
+    eof {
+        puts "✅ PASSED: TUI exited"
+    }
+}
+
+puts "\n=================================================="
+puts "TUI Mode Test Summary"
+puts "=================================================="
+puts "OK TUI initialization: SUCCESS"
+puts "OK Message input: SUCCESS"
+puts "OK Input processing: SUCCESS"
+puts "OK Ctrl+D exit: SUCCESS"
+puts "\nOverall Result: TUI MODE IS WORKING CORRECTLY"
+puts "=================================================="

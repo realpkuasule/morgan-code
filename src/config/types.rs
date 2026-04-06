@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use crate::error::{MorganError, Result};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -11,6 +11,31 @@ pub struct Config {
     pub agent: AgentConfig,
     #[serde(default)]
     pub ui: UIConfig,
+    #[serde(default)]
+    pub project: ProjectConfig,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
+pub struct ProjectConfig {
+    /// Project root directory (current working directory by default)
+    #[serde(default)]
+    pub project_root: Option<PathBuf>,
+
+    /// Morgan Code home directory (for config, cache, history)
+    #[serde(default)]
+    pub morgan_home: Option<PathBuf>,
+
+    /// Auto-detect project root by looking for common project files
+    #[serde(default = "default_auto_detect")]
+    pub auto_detect_root: bool,
+
+    /// Show file origin labels (Project vs Morgan Code)
+    #[serde(default = "default_true")]
+    pub show_file_origin: bool,
+}
+
+fn default_auto_detect() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -75,6 +100,21 @@ pub struct UIConfig {
     pub show_spinner: bool,
     #[serde(default = "default_true")]
     pub color_output: bool,
+    #[serde(default = "default_ui_mode")]
+    pub mode: UIMode,
+    #[serde(default = "default_true")]
+    pub enable_syntax_highlighting: bool,
+    #[serde(default = "default_true")]
+    pub show_line_numbers: bool,
+    #[serde(default = "default_theme")]
+    pub theme: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum UIMode {
+    Tui,
+    Repl,
 }
 
 impl Default for ToolsConfig {
@@ -100,6 +140,10 @@ impl Default for UIConfig {
         Self {
             show_spinner: true,
             color_output: true,
+            mode: default_ui_mode(),
+            enable_syntax_highlighting: true,
+            show_line_numbers: true,
+            theme: default_theme(),
         }
     }
 }
@@ -172,4 +216,12 @@ fn default_max_iterations() -> u32 {
 
 fn default_true() -> bool {
     true
+}
+
+fn default_ui_mode() -> UIMode {
+    UIMode::Tui
+}
+
+fn default_theme() -> String {
+    "base16-ocean.dark".to_string()
 }

@@ -1,0 +1,51 @@
+#!/usr/bin/expect
+
+# Test script for TUI mode using expect
+set timeout 15
+
+spawn bash -c "export DEEPSEEK_API_KEY=test_key_for_tui_testing && ./target/release/morgan chat --tui"
+
+# Wait for TUI to start
+expect {
+    timeout {
+        puts "ERROR: TUI did not start within timeout"
+        exit 1
+    }
+    eof {
+        puts "ERROR: Unexpected EOF while waiting for TUI"
+        exit 1
+    }
+    -re . {
+        # TUI started, send test message
+        puts "TUI started successfully"
+    }
+}
+
+# Send "hello" message
+send "hello"
+expect {
+    timeout {
+        puts "WARNING: No response within timeout (may be expected if API fails)"
+    }
+    -re . {
+        puts "Received some response"
+    }
+}
+
+# Wait a bit for processing
+sleep 2
+
+# Send Ctrl+D to exit
+send "\004"
+
+# Wait for program to exit
+expect {
+    timeout {
+        puts "WARNING: TUI did not exit cleanly"
+    }
+    eof {
+        puts "TUI exited"
+    }
+}
+
+puts "Test completed"

@@ -61,7 +61,28 @@
       "Bash(echo $DEEPSEEK_API_KEY | head -c 10)",
       "Bash(chmod +x /root/claude-projects/morgan-code/test_tool_display.sh && /root/claude-projects/morgan-code/test_tool_display.sh)",
       "Bash(curl -X POST https://api.getmoshi.app/api/webhook \\\\\n  -H \"Content-Type: application/json\" \\\\\n  -d '{\"token\": \"Cw15Y2ckYZKSMNOC0GwFIUevS5HhCRU8\", \"title\": \"Done\", \"message\": \"Tool execution display implemented - shows tool calls in real-time during streaming\"}')",
-      "Bash(cargo build 2>&1)"
+      "Bash(cargo build 2>&1)",
+      "Bash(ls -la | grep -E \"\\\\.\\(py|sh\\)$|scripts|tests\")",
+      "WebSearch",
+      "Bash(curl -X POST https://api.getmoshi.app/api/webhook \\\\\n  -H \"Content-Type: application/json\" \\\\\n  -d '{\"token\": \"Cw15Y2ckYZKSMNOC0GwFIUevS5HhCRU8\", \"title\": \"Done\", \"message\": \"TUI implementation completed for Morgan Code - all files created and project builds successfully\"}')",
+      "Bash(git checkout:*)",
+      "Bash(cargo build:*)",
+      "Bash(cargo run:*)",
+      "Bash(env | grep -i api)",
+      "Bash(chmod +x /root/claude-projects/morgan-code/test_tui.sh)",
+      "Bash(/root/claude-projects/morgan-code/test_tui.sh)",
+      "Bash(./target/release/morgan chat:*)",
+      "Bash(/root/claude-projects/morgan-code/test_tui_detailed.exp)",
+      "Bash(chmod +x /root/claude-projects/morgan-code/manual_tui_test.sh && /root/claude-projects/morgan-code/manual_tui_test.sh)",
+      "Bash(ls -la *.toml *.md 2>/dev/null | head -20)",
+      "Bash(grep -i \"api.*key\" README.md 2>/dev/null | head -10)",
+      "Bash(curl -X POST https://api.getmoshi.app/api/webhook \\\\\n  -H \"Content-Type: application/json\" \\\\\n  -d '{\"token\": \"Cw15Y2ckYZKSMNOC0GwFIUevS5HhCRU8\", \"title\": \"简化项目管理系统完成\", \"message\": \"简化的Morgan Code项目管理。运行在哪个目录就是哪个项目，自动区分Morgan Code文件和项目文件。配置负担最小化，符合Claude Code使用习惯。\"}' 2>&1)",
+      "Bash(cargo test:*)",
+      "Bash(find . -name \"*.rs\" -exec wc -l {} +)",
+      "Bash(find src/project -type f -name *.rs)",
+      "Bash(xargs ls:*)",
+      "Bash(cargo clippy:*)",
+      "Bash(cargo tree:*)"
     ]
   }
 }
